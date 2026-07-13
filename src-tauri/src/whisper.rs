@@ -195,8 +195,11 @@ pub fn set_hf_token(token: String) -> Result<String, String> {
             }
             other => format!("validar o token: {}", other),
         })?;
+    let raw = resp
+        .into_string()
+        .map_err(|e| format!("resposta do Hugging Face: {}", e))?;
     let body: serde_json::Value =
-        resp.into_json().map_err(|e| format!("resposta do Hugging Face: {}", e))?;
+        serde_json::from_str(&raw).map_err(|e| format!("resposta do Hugging Face: {}", e))?;
     let name = body["name"].as_str().unwrap_or("conta").to_string();
     entry
         .set_password(&token)
