@@ -1,0 +1,13 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/gen/schemas
+
+# Runtimes baixados pelos scripts (scripts/fetch-*.ps1/.sh) — nunca versionar.
+src-tauri/binaries/whisper/*
+!src-tauri/binaries/whisper/placeholder.txt
+src-tauri/binaries/llama/*
+!src-tauri/binaries/llama/placeholder.txt
+
+.claude
+*.local
