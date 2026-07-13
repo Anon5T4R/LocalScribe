@@ -24,24 +24,20 @@ pub struct RecorderState {
     session: Mutex<Option<RecSession>>,
 }
 
-fn build_stream<T>(
+fn build_stream<T: cpal::SizedSample + 'static>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     buf: Arc<Mutex<Vec<f32>>>,
     level: Arc<AtomicU32>,
-) -> Result<cpal::Stream, cpal::BuildStreamError>
-where
-    T: cpal::SizedSample,
-    f32: cpal::FromSample<T>,
-{
-    use cpal::FromSample;
+    conv: fn(T) -> f32,
+) -> Result<cpal::Stream, cpal::BuildStreamError> {
     device.build_input_stream(
         config,
         move |data: &[T], _| {
             let mut max = 0f32;
             if let Ok(mut b) = buf.lock() {
                 for s in data {
-                    let v = f32::from_sample(*s);
+                    let v = conv(*s);
                     b.push(v);
                     let a = v.abs();
                     if a > max {
@@ -93,9 +89,19 @@ pub fn record_start(state: State<'_, RecorderState>) -> Result<(), String> {
         let stream_config: cpal::StreamConfig = config.into();
 
         let stream = match sample_format {
-            cpal::SampleFormat::F32 => build_stream::<f32>(&device, &stream_config, t_buf, t_level),
-            cpal::SampleFormat::I16 => build_stream::<i16>(&device, &stream_config, t_buf, t_level),
-            cpal::SampleFormat::U16 => build_stream::<u16>(&device, &stream_config, t_buf, t_level),
+            cpal::SampleFormat::F32 => {
+                build_stream::<f32>(&device, &stream_config, t_buf, t_level, |s| s)
+            }
+            cpal::SampleFormat::I16 => {
+                build_stream::<i16>(&device, &stream_config, t_buf, t_level, |s| {
+                    s as f32 / 32768.0
+                })
+            }
+            cpal::SampleFormat::U16 => {
+                build_stream::<u16>(&device, &stream_config, t_buf, t_level, |s| {
+                    (s as f32 - 32768.0) / 32768.0
+                })
+            }
             other => {
                 let _ = ready_tx.send(Err(format!("formato de captura não suportado: {:?}", other)));
                 return;
