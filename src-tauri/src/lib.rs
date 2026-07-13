@@ -85,6 +85,8 @@ pub fn run() {
             whisper::whisper_cancel_download,
             whisper::whisper_delete_model,
             whisper::whisper_runtime_ok,
+            whisper::hf_token_status,
+            whisper::set_hf_token,
             whisper::transcribe,
             whisper::transcribe_cancel,
             record::record_start,

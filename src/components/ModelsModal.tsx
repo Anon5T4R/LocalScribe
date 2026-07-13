@@ -2,7 +2,8 @@
 // do Hugging Face com SHA-1 conferido). Nada vai no instalador — mesma UX de
 // modelos da suíte.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import * as be from "../lib/backend";
 import type { WhisperModel } from "../lib/types";
 import { useStore } from "../state/store";
@@ -19,7 +20,43 @@ export default function ModelsModal() {
   const setSettings = useStore((s) => s.setSettings);
   const [downloading, setDownloading] = useState<Record<string, boolean>>({});
 
+  // Login opcional no Hugging Face (mesmo papel do login no GitHub do Hub):
+  // sem token o CDN deles pode bloquear downloads anônimos por IP (403).
+  const [hfLogged, setHfLogged] = useState(false);
+  const [hfToken, setHfToken] = useState("");
+  const [hfMsg, setHfMsg] = useState("");
+
+  useEffect(() => {
+    if (open) be.hfTokenStatus().then(setHfLogged).catch(() => {});
+  }, [open]);
+
   if (!open) return null;
+
+  async function saveHfToken() {
+    try {
+      const name = await be.setHfToken(hfToken);
+      setHfLogged(true);
+      setHfToken("");
+      setHfMsg(`Token salvo no cofre do sistema (conta ${name}).`);
+    } catch (e) {
+      setHfMsg(String(e));
+    }
+  }
+
+  async function clearHfToken() {
+    try {
+      await be.setHfToken("");
+      setHfLogged(false);
+      setHfMsg("Token removido.");
+    } catch (e) {
+      setHfMsg(String(e));
+    }
+  }
+
+  function openHfTokenPage() {
+    void openUrl("https://huggingface.co/settings/tokens/new?tokenType=read").catch(() => {});
+    setHfMsg('Crie o token "Read" na página que abriu, copie e cole aqui embaixo.');
+  }
 
   async function download(id: string) {
     setDownloading((d) => ({ ...d, [id]: true }));
@@ -119,6 +156,42 @@ export default function ModelsModal() {
         <div className="model-group">
           <div className="model-group-title">Somente inglês (um pouco melhores em inglês)</div>
           {en.map(row)}
+        </div>
+        <div className="model-group">
+          <div className="model-group-title">Conta do Hugging Face (opcional)</div>
+          <p className="card-hint">
+            Se o download falhar com <b>erro 403</b>, o Hugging Face está limitando
+            downloads anônimos do seu IP. Um token gratuito de leitura resolve — ele fica
+            guardado no cofre do sistema, nunca em arquivo.
+          </p>
+          {hfLogged ? (
+            <div className="hf-row">
+              <span className="chip success">token conectado</span>
+              <button className="btn small danger" onClick={() => void clearHfToken()}>
+                Desconectar
+              </button>
+            </div>
+          ) : (
+            <div className="hf-row">
+              <button className="btn small" onClick={openHfTokenPage}>
+                Criar token…
+              </button>
+              <input
+                type="password"
+                value={hfToken}
+                onChange={(e) => setHfToken(e.target.value)}
+                placeholder="cole o token (hf_…)"
+              />
+              <button
+                className="btn small primary"
+                disabled={!hfToken.trim()}
+                onClick={() => void saveHfToken()}
+              >
+                Salvar
+              </button>
+            </div>
+          )}
+          {hfMsg && <p className="card-hint">{hfMsg}</p>}
         </div>
       </div>
     </div>

@@ -90,6 +90,120 @@ pub fn whisper_models(app: tauri::AppHandle) -> Result<Vec<WhisperModel>, String
         .collect())
 }
 
+// ---------------------------------------------------------------------------
+// Token do Hugging Face (opcional) — mesmo papel do login no GitHub do
+// TaylorHub: o CDN do HF bloqueia downloads anônimos por IP quando excede o
+// rate limit (403 "Access denied"); autenticado, o limite praticamente some.
+// O token fica no cofre do SO (DPAPI/Secret Service), nunca em arquivo.
+// ---------------------------------------------------------------------------
+
+const KEYRING_SERVICE: &str = "LocalScribe";
+const KEYRING_USER: &str = "huggingface-token";
+
+fn hf_token() -> Option<String> {
+    let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).ok()?;
+    entry.get_password().ok().filter(|t| !t.is_empty())
+}
+
+/// O token só pode ir pra hosts do próprio Hugging Face: a URL assinada do
+/// CDN (pós-redirect) recusa requisição com dois mecanismos de auth, e mandar
+/// o token pra host alheio seria vazamento de credencial.
+fn is_hf_host(url: &str) -> bool {
+    url.strip_prefix("https://")
+        .and_then(|rest| rest.split('/').next())
+        .map(|h| h == "huggingface.co" || h.ends_with(".huggingface.co"))
+        .unwrap_or(false)
+}
+
+/// GET seguindo redirects manualmente — o ureq re-enviaria o Authorization
+/// em todos os saltos, e aqui ele precisa parar na fronteira do Hugging Face.
+fn http_get(url: &str) -> Result<ureq::Response, String> {
+    let agent = ureq::AgentBuilder::new().redirects(0).build();
+    let mut url = url.to_string();
+    for _ in 0..8 {
+        let mut req = agent.get(&url);
+        if is_hf_host(&url) {
+            if let Some(t) = hf_token() {
+                req = req.set("Authorization", &format!("Bearer {}", t));
+            }
+        }
+        let resp = req.call().map_err(dl_error)?;
+        if (300..400).contains(&resp.status()) {
+            let loc =
+                resp.header("Location").ok_or("redirect sem Location")?.to_string();
+            url = if loc.starts_with("http") {
+                loc
+            } else if loc.starts_with("//") {
+                format!("https:{}", loc)
+            } else {
+                let origin: String =
+                    url.splitn(4, '/').take(3).collect::<Vec<_>>().join("/");
+                format!("{}{}", origin, loc)
+            };
+            continue;
+        }
+        return Ok(resp);
+    }
+    Err("redirecionamentos demais".into())
+}
+
+/// Traduz o erro HTTP do download pra uma mensagem acionável.
+fn dl_error(e: ureq::Error) -> String {
+    match e {
+        ureq::Error::Status(403, _) if hf_token().is_none() => {
+            "download falhou (403): o Hugging Face está limitando downloads anônimos \
+             do seu IP — conecte um token gratuito em Modelos e tente de novo"
+                .into()
+        }
+        ureq::Error::Status(403, _) => {
+            "download falhou (403): o Hugging Face recusou o acesso mesmo com token — \
+             desconecte e reconecte o token em Modelos"
+                .into()
+        }
+        ureq::Error::Status(429, _) => {
+            "download falhou (429): muitas requisições — aguarde uns minutos ou \
+             conecte um token do Hugging Face em Modelos"
+                .into()
+        }
+        other => format!("download falhou: {}", other),
+    }
+}
+
+/// Há token guardado? (a UI mostra o estado conectado/desconectado)
+#[tauri::command(async)]
+pub fn hf_token_status() -> bool {
+    hf_token().is_some()
+}
+
+/// Salva o token (validando no /api/whoami-v2) ou remove (string vazia).
+/// Devolve o nome da conta pra UI confirmar.
+#[tauri::command(async)]
+pub fn set_hf_token(token: String) -> Result<String, String> {
+    let token = token.trim().to_string();
+    let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
+        .map_err(|e| format!("cofre do sistema indisponível: {}", e))?;
+    if token.is_empty() {
+        let _ = entry.delete_credential();
+        return Ok(String::new());
+    }
+    let resp = ureq::get("https://huggingface.co/api/whoami-v2")
+        .set("Authorization", &format!("Bearer {}", token))
+        .call()
+        .map_err(|e| match e {
+            ureq::Error::Status(401, _) => {
+                "o Hugging Face recusou o token — confira se copiou inteiro".to_string()
+            }
+            other => format!("validar o token: {}", other),
+        })?;
+    let body: serde_json::Value =
+        resp.into_json().map_err(|e| format!("resposta do Hugging Face: {}", e))?;
+    let name = body["name"].as_str().unwrap_or("conta").to_string();
+    entry
+        .set_password(&token)
+        .map_err(|e| format!("guardar no cofre do sistema: {}", e))?;
+    Ok(name)
+}
+
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DlProgress {
@@ -119,9 +233,7 @@ pub fn whisper_download_model(
         let dest = model_path(&app, &id)?;
         let part = dest.with_extension("bin.part");
 
-        let resp = ureq::get(&model_url(&id))
-            .call()
-            .map_err(|e| format!("download falhou: {}", e))?;
+        let resp = http_get(&model_url(&id))?;
         let total: u64 = resp
             .header("Content-Length")
             .and_then(|v| v.parse().ok())
@@ -439,6 +551,15 @@ mod tests {
         assert_eq!(segs[0].end, 4500);
         assert_eq!(segs[0].text, "Olá, mundo.");
         assert_eq!(segs[1].text, "Segundo trecho.");
+    }
+
+    #[test]
+    fn token_so_vai_pra_hosts_do_hugging_face() {
+        assert!(is_hf_host("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/x.bin"));
+        assert!(is_hf_host("https://cdn-lfs.huggingface.co/repos/x"));
+        assert!(!is_hf_host("https://cas-bridge.xethub.hf.co/xet-bridge-us/x"));
+        assert!(!is_hf_host("https://evil.com/huggingface.co/x"));
+        assert!(!is_hf_host("http://huggingface.co/x")); // sem TLS não leva token
     }
 
     #[test]

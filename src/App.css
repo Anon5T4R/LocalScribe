@@ -861,6 +861,15 @@ textarea:focus {
   width: 110px;
   margin-top: 0;
 }
+.hf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hf-row input {
+  flex: 1;
+  min-width: 0;
+}
 
 .form-grid {
   display: grid;

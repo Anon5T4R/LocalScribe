@@ -1,6 +1,6 @@
 [package]
 name = "localscribe"
-version = "0.1.0"
+version = "0.2.0"
 description = "LocalScribe — transcrição de áudio 100% offline (whisper.cpp), com IA local"
 authors = ["Taylor"]
 edition = "2021"
@@ -37,6 +37,8 @@ cpal = "0.15"
 # Download dos modelos ggml (Hugging Face) com verificação de integridade.
 ureq = "2"
 sha1 = "0.10"
+# Token opcional do Hugging Face no cofre do SO (mesmo padrão do TaylorHub).
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"

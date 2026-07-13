@@ -42,6 +42,11 @@ export const whisperDownloadModel = (id: string) => cmd<void>("whisper_download_
 export const whisperCancelDownload = (id: string) => cmd<void>("whisper_cancel_download", { id });
 export const whisperDeleteModel = (id: string) => cmd<void>("whisper_delete_model", { id });
 
+// --- token do Hugging Face (evita o 403 de downloads anônimos) ---
+export const hfTokenStatus = () => cmd<boolean>("hf_token_status");
+/** Salva (devolve o nome da conta) ou remove (string vazia). */
+export const setHfToken = (token: string) => cmd<string>("set_hf_token", { token });
+
 // --- gravação de microfone ---
 export interface RecordStatus {
   recording: boolean;
