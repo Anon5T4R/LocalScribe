@@ -10,6 +10,9 @@
 //! Modelos ggml: baixados do Hugging Face (repositório oficial ggerganov/
 //! whisper.cpp) pra `app_data/models`, com SHA-1 conferido contra o manifesto
 //! embutido (checksums publicados no models/README.md do whisper.cpp).
+//! Se o Hugging Face recusar (o CDN bloqueia IPs anônimos por rate limit),
+//! cai pra um espelho no ModelScope — o SHA-1 do manifesto garante a
+//! integridade do arquivo independente da origem.
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -46,8 +49,22 @@ const MODELS: &[(&str, &str, u32, &str)] = &[
     ("small.en", "Small (só inglês)", 466, "db8a495a91d927739e50b3fc1cc4c6b8f6c2d022"),
 ];
 
-fn model_url(id: &str) -> String {
-    format!("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin", id)
+/// Origens de download em ordem de preferência: Hugging Face oficial primeiro,
+/// espelho no ModelScope como fallback. (rótulo pra mensagem de erro, URL)
+fn model_sources(id: &str) -> [(&'static str, String); 2] {
+    [
+        (
+            "Hugging Face",
+            format!("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin", id),
+        ),
+        (
+            "espelho ModelScope",
+            format!(
+                "https://www.modelscope.cn/models/cjc1887415157/whisper.cpp/resolve/master/ggml-{}.bin",
+                id
+            ),
+        ),
+    ]
 }
 
 fn models_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -119,6 +136,9 @@ fn is_hf_host(url: &str) -> bool {
 /// em todos os saltos, e aqui ele precisa parar na fronteira do Hugging Face.
 fn http_get(url: &str) -> Result<ureq::Response, String> {
     let agent = ureq::AgentBuilder::new().redirects(0).build();
+    // O 403 de rate limit chega no CDN pós-redirect (cas-bridge.xethub.hf.co),
+    // então o conselho de token vale pra cadeia que COMEÇOU no Hugging Face.
+    let from_hf = is_hf_host(url);
     let mut url = url.to_string();
     for _ in 0..8 {
         let mut req = agent.get(&url);
@@ -127,7 +147,7 @@ fn http_get(url: &str) -> Result<ureq::Response, String> {
                 req = req.set("Authorization", &format!("Bearer {}", t));
             }
         }
-        let resp = req.call().map_err(dl_error)?;
+        let resp = req.call().map_err(|e| dl_error(from_hf, e))?;
         if (300..400).contains(&resp.status()) {
             let loc =
                 resp.header("Location").ok_or("redirect sem Location")?.to_string();
@@ -147,22 +167,24 @@ fn http_get(url: &str) -> Result<ureq::Response, String> {
     Err("redirecionamentos demais".into())
 }
 
-/// Traduz o erro HTTP do download pra uma mensagem acionável.
-fn dl_error(e: ureq::Error) -> String {
+/// Traduz o erro HTTP do download pra uma mensagem acionável. O conselho de
+/// token só vale pra downloads vindos do Hugging Face — no espelho,
+/// 403/429 é outra história.
+fn dl_error(hf: bool, e: ureq::Error) -> String {
     match e {
-        ureq::Error::Status(403, _) if hf_token().is_none() => {
-            "download falhou (403): o Hugging Face está limitando downloads anônimos \
-             do seu IP — conecte um token gratuito em Modelos e tente de novo"
+        ureq::Error::Status(403, _) if hf && hf_token().is_none() => {
+            "acesso negado (403) — provável rate limit do Hugging Face pra downloads \
+             anônimos do seu IP; conecte um token gratuito em Modelos"
                 .into()
         }
-        ureq::Error::Status(403, _) => {
-            "download falhou (403): o Hugging Face recusou o acesso mesmo com token — \
-             desconecte e reconecte o token em Modelos"
+        ureq::Error::Status(403, _) if hf => {
+            "acesso negado (403) mesmo com token — desconecte e reconecte o token \
+             em Modelos"
                 .into()
         }
-        ureq::Error::Status(429, _) => {
-            "download falhou (429): muitas requisições — aguarde uns minutos ou \
-             conecte um token do Hugging Face em Modelos"
+        ureq::Error::Status(429, _) if hf => {
+            "muitas requisições (429) — aguarde uns minutos ou conecte um token \
+             do Hugging Face em Modelos"
                 .into()
         }
         other => format!("download falhou: {}", other),
@@ -215,9 +237,71 @@ struct DlProgress {
     total: u64,
 }
 
-/// Baixa um modelo ggml do Hugging Face com progresso (evento `model-dl`) e
-/// verificação de SHA-1 contra o manifesto. Grava em `.part` e só renomeia
-/// depois de conferido — download interrompido nunca vira modelo "instalado".
+/// Baixa `url` pra `part`, confere o SHA-1 e renomeia pra `dest`.
+/// Grava em `.part` e só renomeia depois de conferido — download
+/// interrompido nunca vira modelo "instalado".
+fn download_and_verify(
+    app: &tauri::AppHandle,
+    id: &str,
+    url: &str,
+    sha1_expected: &str,
+    part: &PathBuf,
+    dest: &PathBuf,
+    cancel: &AtomicBool,
+) -> Result<(), String> {
+    let resp = http_get(url)?;
+    let total: u64 = resp
+        .header("Content-Length")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
+    let mut reader = resp.into_reader();
+    let mut file = std::fs::File::create(part).map_err(|e| format!("criar arquivo: {}", e))?;
+    let mut hasher = Sha1::new();
+    let mut buf = [0u8; 65536];
+    let mut received: u64 = 0;
+    let mut last_emit: u64 = 0;
+
+    loop {
+        if cancel.load(Ordering::Relaxed) {
+            drop(file);
+            let _ = std::fs::remove_file(part);
+            return Err("download cancelado".into());
+        }
+        let n = reader.read(&mut buf).map_err(|e| format!("download interrompido: {}", e))?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buf[..n]).map_err(|e| format!("gravar modelo: {}", e))?;
+        hasher.update(&buf[..n]);
+        received += n as u64;
+        // Emite no máximo a cada ~1 MB pra não inundar o front.
+        if received - last_emit > 1_000_000 {
+            last_emit = received;
+            let _ = app.emit("model-dl", DlProgress { id: id.to_string(), received, total });
+        }
+    }
+    file.flush().map_err(|e| e.to_string())?;
+    drop(file);
+
+    let digest = hasher.finalize();
+    let got: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+    if got != *sha1_expected {
+        let _ = std::fs::remove_file(part);
+        return Err(format!(
+            "checksum não confere (esperado {}, veio {})",
+            sha1_expected, got
+        ));
+    }
+    std::fs::rename(part, dest).map_err(|e| format!("finalizar download: {}", e))?;
+    let _ = app.emit("model-dl", DlProgress { id: id.to_string(), received, total: received });
+    Ok(())
+}
+
+/// Baixa um modelo ggml com progresso (evento `model-dl`) e verificação de
+/// SHA-1 contra o manifesto. Tenta as origens de `model_sources` em ordem —
+/// se o Hugging Face falhar (rate limit, queda no meio, checksum), recomeça
+/// do zero no espelho.
 #[tauri::command(async)]
 pub fn whisper_download_model(
     app: tauri::AppHandle,
@@ -236,53 +320,16 @@ pub fn whisper_download_model(
         let dest = model_path(&app, &id)?;
         let part = dest.with_extension("bin.part");
 
-        let resp = http_get(&model_url(&id))?;
-        let total: u64 = resp
-            .header("Content-Length")
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(0);
-
-        let mut reader = resp.into_reader();
-        let mut file = std::fs::File::create(&part).map_err(|e| format!("criar arquivo: {}", e))?;
-        let mut hasher = Sha1::new();
-        let mut buf = [0u8; 65536];
-        let mut received: u64 = 0;
-        let mut last_emit: u64 = 0;
-
-        loop {
-            if cancel.load(Ordering::Relaxed) {
-                drop(file);
-                let _ = std::fs::remove_file(&part);
-                return Err("download cancelado".into());
-            }
-            let n = reader.read(&mut buf).map_err(|e| format!("download interrompido: {}", e))?;
-            if n == 0 {
-                break;
-            }
-            file.write_all(&buf[..n]).map_err(|e| format!("gravar modelo: {}", e))?;
-            hasher.update(&buf[..n]);
-            received += n as u64;
-            // Emite no máximo a cada ~1 MB pra não inundar o front.
-            if received - last_emit > 1_000_000 {
-                last_emit = received;
-                let _ = app.emit("model-dl", DlProgress { id: id.clone(), received, total });
+        let mut failures: Vec<String> = Vec::new();
+        for (label, url) in model_sources(&id) {
+            match download_and_verify(&app, &id, &url, sha1_expected, &part, &dest, &cancel) {
+                Ok(()) => return Ok(()),
+                // Cancelamento não é falha da origem: não adianta tentar a próxima.
+                Err(e) if cancel.load(Ordering::Relaxed) => return Err(e),
+                Err(e) => failures.push(format!("{}: {}", label, e)),
             }
         }
-        file.flush().map_err(|e| e.to_string())?;
-        drop(file);
-
-        let digest = hasher.finalize();
-        let got: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
-        if got != *sha1_expected {
-            let _ = std::fs::remove_file(&part);
-            return Err(format!(
-                "checksum não confere (esperado {}, veio {}) — baixe de novo",
-                sha1_expected, got
-            ));
-        }
-        std::fs::rename(&part, &dest).map_err(|e| format!("finalizar download: {}", e))?;
-        let _ = app.emit("model-dl", DlProgress { id: id.clone(), received, total: received });
-        Ok(())
+        Err(format!("nenhuma origem funcionou — {}", failures.join(" | ")))
     })();
 
     if let Ok(mut d) = state.downloads.lock() {
@@ -571,7 +618,21 @@ mod tests {
             assert!(!id.is_empty() && !label.is_empty() && *mb > 0);
             assert_eq!(sha.len(), 40, "sha1 de {} com tamanho errado", id);
             assert!(sha.chars().all(|c| c.is_ascii_hexdigit()));
-            assert!(model_url(id).starts_with("https://huggingface.co/ggerganov/whisper.cpp/"));
+            let [(_, primaria), (_, espelho)] = model_sources(id);
+            assert!(primaria.starts_with("https://huggingface.co/ggerganov/whisper.cpp/"));
+            assert!(espelho.starts_with("https://www.modelscope.cn/"));
+            assert!(primaria.ends_with(&format!("ggml-{}.bin", id)));
+            assert!(espelho.ends_with(&format!("ggml-{}.bin", id)));
+        }
+    }
+
+    #[test]
+    fn espelho_nao_recebe_token() {
+        // O fallback do ModelScope não é host do Hugging Face: o token
+        // jamais pode ir pra lá (is_hf_host controla o envio no http_get).
+        for (id, _, _, _) in MODELS {
+            let [_, (_, espelho)] = model_sources(id);
+            assert!(!is_hf_host(&espelho), "token vazaria pro espelho de {}", id);
         }
     }
 }
