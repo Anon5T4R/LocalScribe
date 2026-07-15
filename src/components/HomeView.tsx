@@ -1,17 +1,18 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { t, type MessageKey } from "../lib/i18n";
 import { AUDIO_EXTENSIONS } from "../lib/types";
 import { fmtDur } from "../lib/time";
 import { useStore } from "../state/store";
 import { useUi } from "../state/ui";
 import RecordCard from "./RecordCard";
 
-const STATUS_LABEL: Record<string, string> = {
-  waiting: "na fila",
-  preparing: "preparando áudio…",
-  transcribing: "transcrevendo",
-  done: "pronto",
-  error: "erro",
-  cancelled: "cancelado",
+const STATUS_LABEL: Record<string, MessageKey> = {
+  waiting: "home.status.waiting",
+  preparing: "home.status.preparing",
+  transcribing: "home.status.transcribing",
+  done: "home.status.done",
+  error: "home.status.error",
+  cancelled: "home.status.cancelled",
 };
 
 export default function HomeView() {
@@ -33,8 +34,8 @@ export default function HomeView() {
   async function pickFiles() {
     const picked = await open({
       multiple: true,
-      title: "Abrir áudio",
-      filters: [{ name: "Áudio", extensions: AUDIO_EXTENSIONS }],
+      title: t("topbar.openAudio"),
+      filters: [{ name: t("common.audioFilter"), extensions: AUDIO_EXTENSIONS }],
     }).catch(() => null);
     if (!picked) return;
     addFiles(Array.isArray(picked) ? picked : [picked]);
@@ -43,50 +44,46 @@ export default function HomeView() {
   return (
     <div className="home">
       <div className="home-hero">
-        <h1>Transcreva áudio sem sair do seu computador</h1>
-        <p className="home-sub">
-          Arraste arquivos pra cá ou grave do microfone. Tudo 100% offline — nada sobe pra nuvem.
-        </p>
+        <h1>{t("home.heroTitle")}</h1>
+        <p className="home-sub">{t("home.heroSub")}</p>
       </div>
 
       {!runtimeOk && (
         <div className="banner warn">
-          Runtime de transcrição ausente (whisper-cli). Em desenvolvimento, rode{" "}
-          <code>scripts/fetch-whisper</code>; no app instalado isso não deveria acontecer.
+          {t("home.runtimeMissingPre")}{" "}
+          <code>scripts/fetch-whisper</code>
+          {t("home.runtimeMissingPost")}
         </div>
       )}
 
       <div className="home-cards">
         <div className="card drop-card" onClick={pickFiles}>
           <div className="drop-icon">📂</div>
-          <div className="card-title">Abrir arquivos de áudio</div>
-          <p className="card-hint">
-            mp3, wav, m4a, ogg, flac… (áudio de vídeo mp4/mov também). Solte os arquivos em
-            qualquer lugar da janela.
-          </p>
+          <div className="card-title">{t("home.openAudioTitle")}</div>
+          <p className="card-hint">{t("home.openAudioHint")}</p>
         </div>
         <RecordCard />
       </div>
 
       <div className="home-model-line">
-        Modelo de transcrição:{" "}
+        {t("home.modelLine")}{" "}
         {activeModel?.installed ? (
           <b>{activeModel.label}</b>
         ) : (
-          <span className="warn-text">nenhum instalado</span>
+          <span className="warn-text">{t("home.noneInstalled")}</span>
         )}
         <button className="btn small" onClick={() => setModelsOpen(true)}>
-          {activeModel?.installed ? "trocar" : "baixar modelo"}
+          {activeModel?.installed ? t("home.change") : t("home.downloadModel")}
         </button>
       </div>
 
       {queue.length > 0 && (
         <div className="queue">
           <div className="queue-head">
-            <h2>Fila</h2>
+            <h2>{t("home.queue")}</h2>
             {hasFinished && (
               <button className="btn ghost small" onClick={clearFinishedJobs}>
-                Limpar concluídos
+                {t("home.clearFinished")}
               </button>
             )}
           </div>
@@ -95,7 +92,7 @@ export default function HomeView() {
               <div className="queue-item-main">
                 <div className="queue-item-name">{j.name}</div>
                 <div className="queue-item-status">
-                  {STATUS_LABEL[j.status]}
+                  {t(STATUS_LABEL[j.status])}
                   {j.status === "transcribing" && ` — ${j.pct}%`}
                   {j.durationMs ? ` · ${fmtDur(j.durationMs)}` : ""}
                   {j.error ? ` — ${j.error}` : ""}
@@ -112,14 +109,14 @@ export default function HomeView() {
               <div className="queue-item-actions">
                 {j.status === "done" && (
                   <button className="btn small primary" onClick={() => void openTranscript(j.id)}>
-                    Abrir
+                    {t("home.open")}
                   </button>
                 )}
                 {(j.status === "waiting" ||
                   j.status === "preparing" ||
                   j.status === "transcribing") && (
                   <button className="btn small" onClick={() => cancelJob(j.id)}>
-                    Cancelar
+                    {t("common.cancel")}
                   </button>
                 )}
               </div>

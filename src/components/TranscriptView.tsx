@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { t } from "../lib/i18n";
 import { fmtDate, fmtDur } from "../lib/time";
 import { useStore } from "../state/store";
 import { useUi } from "../state/ui";
@@ -39,7 +40,7 @@ export default function TranscriptView() {
     <div className="transcript-view">
       <div className="transcript-main">
         <div className="transcript-head">
-          <button className="icon-btn" onClick={close} title="Voltar">
+          <button className="icon-btn" onClick={close} title={t("transcript.back")}>
             ←
           </button>
           <input
@@ -48,20 +49,20 @@ export default function TranscriptView() {
             onChange={(e) => setTitle(e.target.value)}
           />
           <div className="transcript-actions">
-            <label className="follow-toggle" title="Rolar junto com o áudio">
+            <label className="follow-toggle" title={t("transcript.followTitle")}>
               <input
                 type="checkbox"
                 checked={follow}
                 onChange={(e) => setFollow(e.target.checked)}
               />
-              seguir áudio
+              {t("transcript.followAudio")}
             </label>
             <ExportMenu transcript={current} />
             <button
               className={`btn ${aiOpen ? "primary" : ""}`}
               onClick={() => setAiOpen(!aiOpen)}
             >
-              ✦ IA
+              ✦ {t("transcript.ai")}
             </button>
             {confirmDel ? (
               <>
@@ -69,14 +70,14 @@ export default function TranscriptView() {
                   className="btn danger"
                   onClick={() => void deleteTranscript(current.id)}
                 >
-                  Excluir mesmo?
+                  {t("transcript.deleteConfirm")}
                 </button>
                 <button className="btn" onClick={() => setConfirmDel(false)}>
-                  Não
+                  {t("common.no")}
                 </button>
               </>
             ) : (
-              <button className="icon-btn" title="Excluir" onClick={() => setConfirmDel(true)}>
+              <button className="icon-btn" title={t("transcript.deleteTitle")} onClick={() => setConfirmDel(true)}>
                 🗑
               </button>
             )}
@@ -86,7 +87,7 @@ export default function TranscriptView() {
         <div className="transcript-meta">
           <span className="chip">{fmtDate(current.createdMs)}</span>
           <span className="chip">{fmtDur(current.durationMs)}</span>
-          {current.language && <span className="chip">idioma: {current.language}</span>}
+          {current.language && <span className="chip">{t("transcript.langChip", { lang: current.language })}</span>}
           {current.model && <span className="chip">whisper {current.model}</span>}
           {current.sourcePath && (
             <span className="chip path" title={current.sourcePath}>

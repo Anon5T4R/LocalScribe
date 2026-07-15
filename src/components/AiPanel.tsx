@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { askTranscript, extractTopics, meetingMinutes, summarize } from "../lib/ai";
+import { t, type MessageKey } from "../lib/i18n";
 import { toPlainWithTimes } from "../lib/srt";
 import { useAi } from "../state/airuntime";
 import { useStore } from "../state/store";
@@ -31,7 +32,7 @@ export default function AiPanel() {
   }, []);
 
   async function pickDir() {
-    const dir = await open({ directory: true, title: "Pasta dos modelos .gguf" }).catch(
+    const dir = await open({ directory: true, title: t("ai.pickDirTitle") }).catch(
       () => null,
     );
     if (typeof dir === "string" && dir) {
@@ -45,7 +46,7 @@ export default function AiPanel() {
     if (!path) return;
     try {
       await ai.start(path, 0);
-      toast("success", "IA pronta.");
+      toast("success", t("ai.ready"));
     } catch {
       /* erro já vai pro estado */
     }
@@ -58,7 +59,7 @@ export default function AiPanel() {
     setProgress("");
     const text = toPlainWithTimes(current.segments);
     const onStep = (done: number, total: number) =>
-      setProgress(total > 1 ? `passo ${Math.min(done + 1, total)} de ${total}` : "");
+      setProgress(total > 1 ? t("ai.step", { done: Math.min(done + 1, total), total }) : "");
     try {
       const out =
         kind === "resumo"
@@ -68,7 +69,7 @@ export default function AiPanel() {
             : await extractTopics(ai.port, text, onStep);
       setResult(out);
     } catch (e) {
-      toast("error", `IA falhou: ${e}`);
+      toast("error", t("ai.failed", { e: String(e) }));
     } finally {
       setBusy("");
       setProgress("");
@@ -82,7 +83,7 @@ export default function AiPanel() {
     try {
       setResult(await askTranscript(ai.port, toPlainWithTimes(current.segments), question));
     } catch (e) {
-      toast("error", `IA falhou: ${e}`);
+      toast("error", t("ai.failed", { e: String(e) }));
     } finally {
       setBusy("");
     }
@@ -91,7 +92,7 @@ export default function AiPanel() {
   async function copyResult() {
     try {
       await navigator.clipboard.writeText(result);
-      toast("success", "Copiado.");
+      toast("success", t("ai.copied"));
     } catch {
       /* ignore */
     }
@@ -100,18 +101,17 @@ export default function AiPanel() {
   return (
     <aside className="ai-panel">
       <div className="ai-head">
-        <span className="ai-title">✦ IA local</span>
-        {ai.port > 0 && <span className="chip accent">porta {ai.port}</span>}
+        <span className="ai-title">✦ {t("ai.title")}</span>
+        {ai.port > 0 && <span className="chip accent">{t("ai.port", { n: ai.port })}</span>}
       </div>
 
       {ai.port === 0 ? (
         <div className="ai-setup">
           <p className="card-hint">
-            A IA roda 100% na sua máquina (llama.cpp). Aponte a pasta com modelos <code>.gguf</code>{" "}
-            e inicie.
+            {t("ai.setupHintPre")} <code>.gguf</code> {t("ai.setupHintPost")}
           </p>
           <button className="btn" onClick={pickDir}>
-            {settings.ggufDir ? "Trocar pasta de modelos" : "Escolher pasta de modelos"}
+            {settings.ggufDir ? t("ai.changeDir") : t("ai.chooseDir")}
           </button>
           {settings.ggufDir && <div className="ai-dir">{settings.ggufDir}</div>}
           {ai.models.length > 0 && (
@@ -124,7 +124,7 @@ export default function AiPanel() {
                 ))}
               </select>
               <button className="btn primary" onClick={startServer} disabled={ai.starting}>
-                {ai.starting ? "Carregando modelo…" : "Iniciar IA"}
+                {ai.starting ? t("ai.loadingModel") : t("ai.startAi")}
               </button>
             </>
           )}
@@ -134,21 +134,21 @@ export default function AiPanel() {
         <>
           <div className="ai-actions">
             <button className="btn" disabled={!!busy} onClick={() => void run("resumo")}>
-              Resumo
+              {t("ai.summary")}
             </button>
             <button className="btn" disabled={!!busy} onClick={() => void run("ata")}>
-              Ata de reunião
+              {t("ai.minutes")}
             </button>
             <button className="btn" disabled={!!busy} onClick={() => void run("topicos")}>
-              Tópicos
+              {t("ai.topics")}
             </button>
             <button className="btn ghost small" onClick={() => void ai.stop()}>
-              Parar IA
+              {t("ai.stopAi")}
             </button>
           </div>
           <div className="ai-ask">
             <input
-              placeholder="Pergunte algo sobre o áudio…"
+              placeholder={t("ai.askPlaceholder")}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => {
@@ -161,7 +161,8 @@ export default function AiPanel() {
           </div>
           {busy && (
             <div className="ai-busy">
-              Gerando {busy}… {progress && <span className="text-dim">({progress})</span>}
+              {t("ai.generating")} {t(`ai.kind.${busy}` as MessageKey)}…{" "}
+              {progress && <span className="text-dim">({progress})</span>}
             </div>
           )}
           {result && (
@@ -169,23 +170,23 @@ export default function AiPanel() {
               <pre>{result}</pre>
               <div className="ai-result-actions">
                 <button className="btn small" onClick={copyResult}>
-                  Copiar
+                  {t("common.copy")}
                 </button>
                 <button
                   className="btn small primary"
                   onClick={() => {
                     setSummary(result);
-                    toast("success", "Salvo como resumo da transcrição.");
+                    toast("success", t("ai.savedAsSummary"));
                   }}
                 >
-                  Salvar como resumo
+                  {t("ai.saveAsSummary")}
                 </button>
               </div>
             </div>
           )}
           {!result && !busy && current?.summary && (
             <div className="ai-result">
-              <div className="ai-result-label">Resumo salvo</div>
+              <div className="ai-result-label">{t("ai.savedSummaryLabel")}</div>
               <pre>{current.summary}</pre>
             </div>
           )}

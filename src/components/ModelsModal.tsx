@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import * as be from "../lib/backend";
+import { t } from "../lib/i18n";
 import type { WhisperModel } from "../lib/types";
 import { useStore } from "../state/store";
 import { useUi } from "../state/ui";
@@ -37,7 +38,7 @@ export default function ModelsModal() {
       const name = await be.setHfToken(hfToken);
       setHfLogged(true);
       setHfToken("");
-      setHfMsg(`Token salvo no cofre do sistema (conta ${name}).`);
+      setHfMsg(t("models.tokenSaved", { name }));
     } catch (e) {
       setHfMsg(String(e));
     }
@@ -47,7 +48,7 @@ export default function ModelsModal() {
     try {
       await be.setHfToken("");
       setHfLogged(false);
-      setHfMsg("Token removido.");
+      setHfMsg(t("models.tokenRemoved"));
     } catch (e) {
       setHfMsg(String(e));
     }
@@ -55,14 +56,14 @@ export default function ModelsModal() {
 
   function openHfTokenPage() {
     void openUrl("https://huggingface.co/settings/tokens/new?tokenType=read").catch(() => {});
-    setHfMsg('Crie o token "Read" na página que abriu, copie e cole aqui embaixo.');
+    setHfMsg(t("models.createTokenMsg"));
   }
 
   async function download(id: string) {
     setDownloading((d) => ({ ...d, [id]: true }));
     try {
       await be.whisperDownloadModel(id);
-      toast("success", `Modelo ${id} instalado.`);
+      toast("success", t("models.installedToast", { id }));
       await refresh();
     } catch (e) {
       toast("error", String(e));
@@ -101,7 +102,7 @@ export default function ModelsModal() {
             <div className="model-label">{m.label}</div>
             <div className="model-size">
               {fmtSize(m.sizeMb)}
-              {m.installed && <span className="chip success">instalado</span>}
+              {m.installed && <span className="chip success">{t("models.installed")}</span>}
             </div>
           </div>
         </label>
@@ -115,16 +116,16 @@ export default function ModelsModal() {
                 className="btn small"
                 onClick={() => void be.whisperCancelDownload(m.id)}
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
             </div>
           ) : m.installed ? (
             <button className="btn small danger" onClick={() => void remove(m.id)}>
-              Remover
+              {t("models.remove")}
             </button>
           ) : (
             <button className="btn small primary" onClick={() => void download(m.id)}>
-              Baixar
+              {t("models.download")}
             </button>
           )}
         </div>
@@ -139,55 +140,52 @@ export default function ModelsModal() {
     <div className="modal-backdrop" onClick={() => setOpen(false)}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>Modelos de transcrição</h2>
+          <h2>{t("models.title")}</h2>
           <button className="icon-btn" onClick={() => setOpen(false)}>
             ✕
           </button>
         </div>
         <p className="card-hint">
-          Modelos oficiais do whisper.cpp, baixados do Hugging Face com verificação de
-          integridade. Maior = melhor qualidade e mais lento. Pra português, comece pelo{" "}
-          <b>Base</b>.
+          {t("models.intro")} {t("models.tipBase")} <b>Base</b>.
         </p>
         <div className="model-group">
-          <div className="model-group-title">Multilíngue (português incluso)</div>
+          <div className="model-group-title">{t("models.multiTitle")}</div>
           {multi.map(row)}
         </div>
         <div className="model-group">
-          <div className="model-group-title">Somente inglês (um pouco melhores em inglês)</div>
+          <div className="model-group-title">{t("models.enTitle")}</div>
           {en.map(row)}
         </div>
         <div className="model-group">
-          <div className="model-group-title">Conta do Hugging Face (opcional)</div>
+          <div className="model-group-title">{t("models.hfTitle")}</div>
           <p className="card-hint">
-            Se o download falhar com <b>erro 403</b>, o Hugging Face está limitando
-            downloads anônimos do seu IP. Um token gratuito de leitura resolve — ele fica
-            guardado no cofre do sistema, nunca em arquivo.
+            {t("models.hfIntroPre")} <b>{t("models.hfError403")}</b>
+            {t("models.hfIntroPost")}
           </p>
           {hfLogged ? (
             <div className="hf-row">
-              <span className="chip success">token conectado</span>
+              <span className="chip success">{t("models.tokenConnected")}</span>
               <button className="btn small danger" onClick={() => void clearHfToken()}>
-                Desconectar
+                {t("models.disconnect")}
               </button>
             </div>
           ) : (
             <div className="hf-row">
               <button className="btn small" onClick={openHfTokenPage}>
-                Criar token…
+                {t("models.createToken")}
               </button>
               <input
                 type="password"
                 value={hfToken}
                 onChange={(e) => setHfToken(e.target.value)}
-                placeholder="cole o token (hf_…)"
+                placeholder={t("models.tokenPlaceholder")}
               />
               <button
                 className="btn small primary"
                 disabled={!hfToken.trim()}
                 onClick={() => void saveHfToken()}
               >
-                Salvar
+                {t("models.save")}
               </button>
             </div>
           )}

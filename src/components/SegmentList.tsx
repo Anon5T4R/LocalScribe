@@ -2,6 +2,7 @@
 // mantendo os timestamps — o editor de transcript do plano.
 
 import { useEffect, useRef } from "react";
+import { t } from "../lib/i18n";
 import { fmtDur } from "../lib/time";
 import type { Segment } from "../lib/types";
 
@@ -29,7 +30,7 @@ export default function SegmentList({ segments, activeIndex, follow, onSeek, onE
   }
 
   if (segments.length === 0) {
-    return <div className="segments-empty">Transcrição vazia.</div>;
+    return <div className="segments-empty">{t("segments.empty")}</div>;
   }
 
   return (
@@ -39,7 +40,7 @@ export default function SegmentList({ segments, activeIndex, follow, onSeek, onE
           <button
             className="segment-time"
             onClick={() => onSeek(seg.start)}
-            title="Tocar a partir daqui"
+            title={t("segments.playFrom")}
           >
             {fmtDur(seg.start)}
           </button>

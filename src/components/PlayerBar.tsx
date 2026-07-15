@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { t } from "../lib/i18n";
 import { fmtDur } from "../lib/time";
 
 const RATES = [0.75, 1, 1.25, 1.5, 2];
@@ -133,9 +134,7 @@ export default function PlayerBar({
 
   if (!audioPath) {
     return (
-      <div className="player player-empty">
-        Áudio não guardado para esta transcrição (ative "manter áudio" nas configurações).
-      </div>
+      <div className="player player-empty">{t("player.empty")}</div>
     );
   }
 
@@ -153,23 +152,23 @@ export default function PlayerBar({
           onTime(ms);
         }}
       />
-      <button className="icon-btn play-btn" onClick={toggle} title="Tocar/pausar (espaço)">
+      <button className="icon-btn play-btn" onClick={toggle} title={t("player.playPause")}>
         {playing ? "⏸" : "▶"}
       </button>
-      <button className="icon-btn" onClick={() => skip(-10)} title="Voltar 10 s">
+      <button className="icon-btn" onClick={() => skip(-10)} title={t("player.back10")}>
         ↺10
       </button>
-      <button className="icon-btn" onClick={() => skip(10)} title="Avançar 10 s">
+      <button className="icon-btn" onClick={() => skip(10)} title={t("player.fwd10")}>
         10↻
       </button>
       <canvas ref={canvasRef} className="wave" onClick={clickWave} />
       <span className="player-time">
         {fmtDur(pos)} / {fmtDur(durationMs)}
       </span>
-      <button className="btn small" onClick={changeRate} title="Velocidade">
+      <button className="btn small" onClick={changeRate} title={t("player.speed")}>
         {rate}×
       </button>
-      {failed && <span className="warn-text">áudio indisponível</span>}
+      {failed && <span className="warn-text">{t("player.unavailable")}</span>}
     </div>
   );
 }

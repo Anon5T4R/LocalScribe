@@ -8,6 +8,7 @@ import Toasts from "./components/Toasts";
 import TopBar from "./components/TopBar";
 import TranscriptView from "./components/TranscriptView";
 import { inTauri } from "./lib/backend";
+import { t } from "./lib/i18n";
 import { AUDIO_EXTENSIONS } from "./lib/types";
 import { useStore } from "./state/store";
 import { useUi } from "./state/ui";
@@ -56,7 +57,7 @@ export default function App() {
             return AUDIO_EXTENSIONS.includes(ext);
           });
           if (audio.length === 0 && paths.length > 0) {
-            toast("error", "Nenhum arquivo de áudio reconhecido nos itens soltos.");
+            toast("error", t("app.dropNothing"));
             return;
           }
           addFiles(audio);
@@ -79,7 +80,7 @@ export default function App() {
       </div>
       {dragging && (
         <div className="drop-overlay">
-          <div className="drop-overlay-inner">Solte pra transcrever</div>
+          <div className="drop-overlay-inner">{t("app.dropHere")}</div>
         </div>
       )}
       <ModelsModal />

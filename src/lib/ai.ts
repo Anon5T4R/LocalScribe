@@ -4,6 +4,7 @@
 // Writer/LocalPDF, porque o contexto padrão é ~4096 tokens.
 
 import { chunkText } from "./chunk";
+import { t } from "./i18n";
 
 interface ChatMsg {
   role: "system" | "user" | "assistant";
@@ -23,7 +24,7 @@ async function chat(port: number, messages: ChatMsg[], maxTokens = 700): Promise
       chat_template_kwargs: { enable_thinking: false },
     }),
   });
-  if (!res.ok) throw new Error(`IA respondeu ${res.status}`);
+  if (!res.ok) throw new Error(t("ai.err.respondedStatus", { status: res.status }));
   const data = await res.json();
   return (data?.choices?.[0]?.message?.content ?? "").trim();
 }
@@ -37,7 +38,7 @@ async function mapReduce(
   onStep?: (done: number, total: number) => void,
 ): Promise<string> {
   const chunks = chunkText(text);
-  if (chunks.length === 0) throw new Error("transcrição vazia");
+  if (chunks.length === 0) throw new Error(t("ai.err.emptyTranscript"));
   if (chunks.length === 1) {
     onStep?.(0, 1);
     const out = await chat(port, [
@@ -53,7 +54,10 @@ async function mapReduce(
     partials.push(
       await chat(port, [
         { role: "system", content: mapSystem },
-        { role: "user", content: `(parte ${i + 1} de ${chunks.length})\n\n${chunks[i]}` },
+        {
+          role: "user",
+          content: `${t("ai.part", { i: i + 1, total: chunks.length })}\n\n${chunks[i]}`,
+        },
       ]),
     );
   }
@@ -75,8 +79,8 @@ export function summarize(
   return mapReduce(
     port,
     text,
-    "Você resume trechos de uma transcrição de áudio em português. Resuma o trecho em 3-5 frases, mantendo nomes, números e decisões. Não invente nada.",
-    "Você resume transcrições de áudio em português. Escreva um resumo claro e fiel (1-3 parágrafos) a partir do conteúdo abaixo. Mantenha nomes, números e decisões. Não invente nada.",
+    t("ai.prompt.summarizeMap"),
+    t("ai.prompt.summarizeReduce"),
     onStep,
   );
 }
@@ -90,13 +94,8 @@ export function meetingMinutes(
   return mapReduce(
     port,
     text,
-    "Você extrai de um trecho de transcrição de reunião (português): assuntos discutidos, decisões tomadas, ações combinadas (com responsável se dito) e prazos. Responda em tópicos curtos. Não invente nada.",
-    [
-      "Você redige atas de reunião em português, em markdown, a partir do material abaixo.",
-      "Estrutura: ## Resumo (2-3 frases) · ## Assuntos discutidos (tópicos) ·",
-      "## Decisões (tópicos) · ## Ações e responsáveis (tópicos '- [ ] ação — responsável') ·",
-      "## Pendências. Omita seções sem conteúdo. Não invente participantes, decisões nem prazos.",
-    ].join(" "),
+    t("ai.prompt.minutesMap"),
+    t("ai.prompt.minutesReduce"),
     onStep,
   );
 }
@@ -110,8 +109,8 @@ export function extractTopics(
   return mapReduce(
     port,
     text,
-    "Liste em tópicos (markdown '-') os assuntos deste trecho de transcrição, em português. Se as linhas tiverem timestamps [m:ss], inclua o timestamp de onde o assunto começa. Não invente nada.",
-    "Consolide as listas abaixo numa única lista de tópicos (markdown '-') sem repetições, em ordem cronológica, mantendo os timestamps [m:ss] quando existirem.",
+    t("ai.prompt.topicsMap"),
+    t("ai.prompt.topicsReduce"),
     onStep,
   );
 }
@@ -122,16 +121,14 @@ export async function askTranscript(port: number, text: string, question: string
   let context = text;
   if (text.length > MAX) {
     context =
-      text.slice(0, MAX / 2) + "\n\n[... trecho do meio omitido ...]\n\n" + text.slice(-MAX / 2);
+      text.slice(0, MAX / 2) + `\n\n${t("ai.ask.middleOmitted")}\n\n` + text.slice(-MAX / 2);
   }
   return chat(
     port,
     [
       {
         role: "system",
-        content:
-          "Você responde perguntas sobre a transcrição de áudio abaixo, em português, citando os timestamps [m:ss] quando ajudarem. Se a resposta não estiver na transcrição, diga isso.\n\n=== TRANSCRIÇÃO ===\n" +
-          context,
+        content: t("ai.prompt.askSystem") + "\n\n" + t("ai.ask.transcriptHeader") + "\n" + context,
       },
       { role: "user", content: question },
     ],

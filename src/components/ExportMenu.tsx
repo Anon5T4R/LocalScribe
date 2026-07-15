@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "../lib/backend";
+import { t } from "../lib/i18n";
 import { toMd, toSrt, toTxt, toVtt } from "../lib/srt";
 import type { Transcript } from "../lib/types";
 import { useUi } from "../state/ui";
@@ -30,14 +31,14 @@ export default function ExportMenu({ transcript }: Props) {
   async function exportAs(ext: string, content: string, label: string) {
     setOpen(false);
     const path = await save({
-      title: `Exportar ${label}`,
+      title: t("export.prefix", { label }),
       defaultPath: `${safeName}.${ext}`,
       filters: [{ name: label, extensions: [ext] }],
     }).catch(() => null);
     if (!path) return;
     try {
       await writeTextFile(path, content);
-      toast("success", `Exportado: ${path}`);
+      toast("success", t("export.exported", { path }));
     } catch (e) {
       toast("error", String(e));
     }
@@ -47,7 +48,7 @@ export default function ExportMenu({ transcript }: Props) {
     setOpen(false);
     try {
       await navigator.clipboard.writeText(toTxt(transcript.segments));
-      toast("success", "Texto copiado.");
+      toast("success", t("export.textCopied"));
     } catch (e) {
       toast("error", String(e));
     }
@@ -56,28 +57,28 @@ export default function ExportMenu({ transcript }: Props) {
   return (
     <div className="export-menu" ref={ref}>
       <button className="btn" onClick={() => setOpen(!open)}>
-        Exportar ▾
+        {t("export.button")} ▾
       </button>
       {open && (
         <div className="menu">
-          <button onClick={() => void exportAs("txt", toTxt(transcript.segments), "Texto")}>
-            Texto (.txt)
+          <button onClick={() => void exportAs("txt", toTxt(transcript.segments), t("export.txt"))}>
+            {t("export.txtMenu")}
           </button>
           <button
             onClick={() =>
-              void exportAs("md", toMd(transcript.title, transcript.segments), "Markdown")
+              void exportAs("md", toMd(transcript.title, transcript.segments), t("export.md"))
             }
           >
-            Markdown (.md) — bom pro OpenObsidian
+            {t("export.mdMenu")}
           </button>
-          <button onClick={() => void exportAs("srt", toSrt(transcript.segments), "Legenda SRT")}>
-            Legenda (.srt)
+          <button onClick={() => void exportAs("srt", toSrt(transcript.segments), t("export.srt"))}>
+            {t("export.srtMenu")}
           </button>
-          <button onClick={() => void exportAs("vtt", toVtt(transcript.segments), "Legenda VTT")}>
-            Legenda (.vtt)
+          <button onClick={() => void exportAs("vtt", toVtt(transcript.segments), t("export.vtt"))}>
+            {t("export.vttMenu")}
           </button>
           <hr />
-          <button onClick={copyAll}>Copiar texto</button>
+          <button onClick={copyAll}>{t("export.copyText")}</button>
         </div>
       )}
     </div>

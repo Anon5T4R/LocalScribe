@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as be from "../lib/backend";
+import { t } from "../lib/i18n";
 import { fmtDur } from "../lib/time";
 import { useStore } from "../state/store";
 import { useUi } from "../state/ui";
@@ -61,7 +62,7 @@ export default function RecordCard() {
       const res = await be.recordStop(id);
       const d = new Date();
       const two = (n: number) => String(n).padStart(2, "0");
-      const name = `Gravação ${two(d.getDate())}/${two(d.getMonth() + 1)} ${two(d.getHours())}:${two(d.getMinutes())}`;
+      const name = `${t("record.namePrefix")} ${two(d.getDate())}/${two(d.getMonth() + 1)} ${two(d.getHours())}:${two(d.getMinutes())}`;
       addRecording(name, res.wavPath, res.durationMs, res.peaks);
     } catch (e) {
       toast("error", String(e));
@@ -89,16 +90,16 @@ export default function RecordCard() {
     <div className={`card record-card ${recording ? "recording" : ""}`}>
       {!recording ? (
         <>
-          <div className="card-title">Gravar do microfone</div>
-          <p className="card-hint">Grave uma reunião ou nota de voz e transcreva na hora.</p>
+          <div className="card-title">{t("record.title")}</div>
+          <p className="card-hint">{t("record.hint")}</p>
           <button className="btn record-btn" onClick={start} disabled={busy}>
-            <span className="rec-dot" /> Gravar
+            <span className="rec-dot" /> {t("record.record")}
           </button>
         </>
       ) : (
         <>
           <div className="card-title rec-live">
-            <span className="rec-dot pulsing" /> Gravando — {fmtDur(elapsed)}
+            <span className="rec-dot pulsing" /> {t("record.recording")} — {fmtDur(elapsed)}
           </div>
           <div className="level-meter">
             <div
@@ -108,10 +109,10 @@ export default function RecordCard() {
           </div>
           <div className="record-actions">
             <button className="btn primary" onClick={stop} disabled={busy}>
-              ■ Parar e transcrever
+              ■ {t("record.stop")}
             </button>
             <button className="btn ghost" onClick={discard} disabled={busy}>
-              Descartar
+              {t("record.discard")}
             </button>
           </div>
         </>

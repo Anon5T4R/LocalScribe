@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../lib/i18n";
 import { fmtDate, fmtDur } from "../lib/time";
 import { useStore } from "../state/store";
 
@@ -19,7 +20,7 @@ export default function Sidebar() {
       <div className="sidebar-head">
         <input
           className="sidebar-search"
-          placeholder="Buscar na biblioteca…"
+          placeholder={t("sidebar.search")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -27,7 +28,7 @@ export default function Sidebar() {
       <div className="sidebar-list">
         {filtered.length === 0 && (
           <div className="sidebar-empty">
-            {metas.length === 0 ? "Suas transcrições aparecem aqui." : "Nada encontrado."}
+            {metas.length === 0 ? t("sidebar.empty") : t("sidebar.notFound")}
           </div>
         )}
         {filtered.map((m) => (
@@ -42,14 +43,14 @@ export default function Sidebar() {
               <span className="chip">{fmtDur(m.durationMs)}</span>
               {m.language && <span className="chip">{m.language}</span>}
               {m.hasSummary && (
-                <span className="chip accent" title="Tem resumo de IA">
+                <span className="chip accent" title={t("sidebar.hasSummary")}>
                   ✦
                 </span>
               )}
             </div>
             {confirmId === m.id ? (
               <div className="lib-item-confirm" onClick={(e) => e.stopPropagation()}>
-                Excluir?
+                {t("sidebar.deleteConfirm")}
                 <button
                   className="btn danger small"
                   onClick={() => {
@@ -57,16 +58,16 @@ export default function Sidebar() {
                     void deleteTranscript(m.id);
                   }}
                 >
-                  Sim
+                  {t("sidebar.yes")}
                 </button>
                 <button className="btn small" onClick={() => setConfirmId("")}>
-                  Não
+                  {t("common.no")}
                 </button>
               </div>
             ) : (
               <button
                 className="lib-item-del"
-                title="Excluir transcrição"
+                title={t("sidebar.deleteTitle")}
                 onClick={(e) => {
                   e.stopPropagation();
                   setConfirmId(m.id);

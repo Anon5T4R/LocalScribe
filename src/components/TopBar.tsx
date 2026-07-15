@@ -1,4 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { t } from "../lib/i18n";
 import { AUDIO_EXTENSIONS } from "../lib/types";
 import { useStore } from "../state/store";
 import { useUi } from "../state/ui";
@@ -14,8 +15,8 @@ export default function TopBar() {
   async function pickFiles() {
     const picked = await open({
       multiple: true,
-      title: "Abrir áudio",
-      filters: [{ name: "Áudio", extensions: AUDIO_EXTENSIONS }],
+      title: t("topbar.openAudio"),
+      filters: [{ name: t("common.audioFilter"), extensions: AUDIO_EXTENSIONS }],
     }).catch(() => null);
     if (!picked) return;
     addFiles(Array.isArray(picked) ? picked : [picked]);
@@ -28,25 +29,25 @@ export default function TopBar() {
 
   return (
     <header className="topbar">
-      <button className="brand" onClick={close} title="Início">
+      <button className="brand" onClick={close} title={t("topbar.home")}>
         <span className="brand-mark">✎</span>
         <span className="brand-name">LocalScribe</span>
       </button>
       <div className="topbar-actions">
         <button className="btn primary" onClick={pickFiles}>
-          + Abrir áudio
+          + {t("topbar.openAudio")}
         </button>
         <button className="btn" onClick={() => setModelsOpen(true)}>
-          Modelos
+          {t("topbar.models")}
         </button>
         <button
           className="icon-btn"
           onClick={toggleTheme}
-          title={settings.theme === "dark" ? "Tema claro" : "Tema escuro"}
+          title={settings.theme === "dark" ? t("topbar.themeLight") : t("topbar.themeDark")}
         >
           {settings.theme === "dark" ? "☀" : "🌙"}
         </button>
-        <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Configurações">
+        <button className="icon-btn" onClick={() => setSettingsOpen(true)} title={t("topbar.settings")}>
           ⚙
         </button>
       </div>

@@ -4,6 +4,7 @@
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
 import * as be from "../lib/backend";
+import { t as tr } from "../lib/i18n";
 import {
   DEFAULT_SETTINGS,
   type QueueJob,
@@ -189,7 +190,7 @@ export const useStore = create<Store>((set, get) => ({
       const t = await be.transcriptGet(id);
       set({ current: t });
     } catch (e) {
-      useUi.getState().toast("error", `Não consegui abrir: ${e}`);
+      useUi.getState().toast("error", tr("store.openFailed", { e: String(e) }));
     }
   },
 
@@ -226,7 +227,7 @@ export const useStore = create<Store>((set, get) => ({
       await be.transcriptSave(cur);
       await get().refreshMetas();
     } catch (e) {
-      useUi.getState().toast("error", `Falha ao salvar: ${e}`);
+      useUi.getState().toast("error", tr("store.saveFailed", { e: String(e) }));
     }
   },
 
@@ -234,7 +235,7 @@ export const useStore = create<Store>((set, get) => ({
     try {
       await be.transcriptDelete(id);
     } catch (e) {
-      useUi.getState().toast("error", `Falha ao excluir: ${e}`);
+      useUi.getState().toast("error", tr("store.deleteFailed", { e: String(e) }));
       return;
     }
     if (get().current?.id === id) set({ current: null });
@@ -272,7 +273,7 @@ async function runQueue(set: Set, get: () => Store) {
       if (!model?.installed) {
         patchJob(set, job.id, {
           status: "error",
-          error: "nenhum modelo de transcrição instalado — abra Modelos e baixe um",
+          error: tr("store.noModel"),
         });
         useUi.getState().setModelsOpen(true);
         continue;
@@ -317,13 +318,13 @@ async function runQueue(set: Set, get: () => Store) {
         await be.transcriptSave(t);
         await get().refreshMetas();
         patchJob(set, id, { status: "done", pct: 100 });
-        toast("success", `Transcrição pronta: ${job.name}`);
+        toast("success", tr("store.transcriptReady", { name: job.name }));
       } catch (e) {
         const cancelled =
           (get().queue.find((j) => j.id === id)?.status ?? "") === "cancelled";
         if (!cancelled) {
           patchJob(set, id, { status: "error", error: String(e) });
-          toast("error", `Falha em ${job.name}: ${e}`);
+          toast("error", tr("store.jobFailed", { name: job.name, e: String(e) }));
         }
       }
     }
