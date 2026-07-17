@@ -63,7 +63,15 @@ export interface WhisperModel {
 }
 
 export interface Settings {
-  theme: "light" | "dark" | "system";
+  theme:
+    | "light"
+    | "dark"
+    | "system"
+    | "nature"
+    | "darkblue"
+    | "calmgreen"
+    | "pastelpink"
+    | "punkprincess";
   /** Idioma da transcrição ("auto" detecta). */
   language: string;
   /** Modelo whisper padrão (id do manifesto). */

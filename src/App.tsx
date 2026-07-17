@@ -29,10 +29,13 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     function apply() {
-      const dark =
-        theme === "dark" ||
-        (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      root.setAttribute("data-theme", dark ? "dark" : "light");
+      if (theme === "system") {
+        const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        root.setAttribute("data-theme", dark ? "dark" : "light");
+      } else {
+        // light/dark e os temas nomeados vão direto pro atributo.
+        root.setAttribute("data-theme", theme);
+      }
     }
     apply();
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
