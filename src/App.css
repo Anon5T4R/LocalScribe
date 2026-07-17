@@ -1,9 +1,15 @@
+/* Pass de suavização dos fundos: fundo não pode ser o pico de contraste da tela
+   — quem puxa o olho é o `--accent`. Nenhuma superfície é branco puro e, no
+   escuro, o quase-preto sobe ~5 L*. Só o L* muda (a/b intactos), então cada
+   tema mantém matiz e a escada bg < surface-2 < surface continua na mesma ordem.
+   Papel → var: `--surface` = o `--panel` da suíte, `--surface-2` = o `--panel-2`. */
 :root {
-  --bg: #f7f8fa;
-  --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --border: #e2e5ea;
-  --border-strong: #cfd4dc;
+  --bg: #eeeff1;
+  /* era #ffffff: branco puro morre nesta pass; off-white no matiz do --bg */
+  --surface: #f7f8fa;
+  --surface-2: #e7e9ec;
+  --border: #dadde1;
+  --border-strong: #c7ccd4;
   --text: #1c2430;
   --text-dim: #64707f;
   --text-faint: #98a2b3;
@@ -19,11 +25,11 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #0f121b;
-  --surface: #171b28;
-  --surface-2: #1f2433;
-  --border: #2a3041;
-  --border-strong: #3a4255;
+  --bg: #191c25;
+  --surface: #212533;
+  --surface-2: #2a2f3e;
+  --border: #353b4d;
+  --border-strong: #464e61;
   --text: #e6e9f2;
   --text-dim: #9aa3b6;
   --text-faint: #6b7387;
@@ -40,13 +46,14 @@
 /* ---------- temas nomeados (paletas fixas, sobrepõem o accent) ---------- */
 
 :root[data-theme="nature"] {
-  --bg: #f5f7f2;
-  --surface: #ffffff;
-  --surface-2: #eef2ea;
-  --border: #e2e8dd;
-  --border-strong: #cdd6c6;
+  --bg: #eef1e9;
+  --surface: #f8faf5;
+  --surface-2: #e4eade;
+  --border: #dbe3d4;
+  --border-strong: #c7d0c0;
   --text: #2e3a2e;
-  --text-dim: #6f7d6f;
+  /* secundário escurecido pra cravar 4.5:1 na superfície nova (matiz mantido) */
+  --text-dim: #697669;
   --text-faint: #9aa89a;
   --accent: #7a9e7e;
   --accent-soft: #e6efe1;
@@ -59,11 +66,11 @@
 }
 
 :root[data-theme="darkblue"] {
-  --bg: #0d1520;
-  --surface: #131f30;
-  --surface-2: #1a2942;
-  --border: #223049;
-  --border-strong: #33455f;
+  --bg: #16202e;
+  --surface: #1d2a3c;
+  --surface-2: #26374e;
+  --border: #2d3f59;
+  --border-strong: #42546f;
   --text: #e2e8f0;
   --text-dim: #8595ad;
   --text-faint: #64748b;
@@ -78,13 +85,13 @@
 }
 
 :root[data-theme="calmgreen"] {
-  --bg: #f2f5f1;
-  --surface: #ffffff;
-  --surface-2: #e9efe7;
-  --border: #dde6dc;
-  --border-strong: #c8d4c6;
+  --bg: #eaf0e9;
+  --surface: #f7faf6;
+  --surface-2: #dfe8dd;
+  --border: #d5e0d3;
+  --border-strong: #c2cdc0;
   --text: #24302a;
-  --text-dim: #6a7a6f;
+  --text-dim: #67776c;
   --text-faint: #97a69a;
   --accent: #4f7d5e;
   --accent-soft: #dcebd9;
@@ -97,13 +104,13 @@
 }
 
 :root[data-theme="pastelpink"] {
-  --bg: #fdf4f7;
-  --surface: #ffffff;
-  --surface-2: #f9eaf0;
-  --border: #f2dfe7;
-  --border-strong: #e6c9d5;
+  --bg: #f8ebf0;
+  --surface: #fdf6f9;
+  --surface-2: #f2dde6;
+  --border: #ecd3de;
+  --border-strong: #dcbfcb;
   --text: #3a2a30;
-  --text-dim: #8a7580;
+  --text-dim: #806d77;
   --text-faint: #b09aa5;
   --accent: #e8799f;
   --accent-soft: #fbe4ee;
@@ -116,11 +123,11 @@
 }
 
 :root[data-theme="punkprincess"] {
-  --bg: #120a1a;
-  --surface: #1a0f26;
-  --surface-2: #241533;
-  --border: #2c1c3d;
-  --border-strong: #43295c;
+  --bg: #1c1228;
+  --surface: #251733;
+  --surface-2: #32204a;
+  --border: #3a2850;
+  --border-strong: #52376b;
   --text: #f0e6ff;
   --text-dim: #9a86b5;
   --text-faint: #6f5d88;
