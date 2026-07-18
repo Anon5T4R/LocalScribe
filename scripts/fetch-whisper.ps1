@@ -20,8 +20,11 @@ $ProgressPreference = "SilentlyContinue"
 # o asset, rodar `sha256sum`, trocar as constantes — e atualizar o WH_TAG do
 # `fetch-whisper.sh` pra MESMA versão (lá é build do fonte, não binário pronto).
 # ---------------------------------------------------------------------------
-$whTag = "v1.9.1"
-$whAsset = "whisper-bin-x64.zip"
+# Tag do upstream (proveniencia; a URL usa o espelho da suite).
+$whUpstreamTag = "v1.9.1"
+# No espelho o nome leva a versao: o do upstream ("whisper-bin-x64.zip") NAO tem
+# versao no nome e colidiria entre releases do espelho.
+$whAsset = "whisper-v1.9.1-bin-x64.zip"
 $whSha256 = "7d8be46ecd31828e1eb7a2ecdd0d6b314feafd82163038ab6092594b0a063539"
 
 $root = Split-Path -Parent $PSScriptRoot
@@ -33,7 +36,7 @@ if (Test-Path (Join-Path $whisperDir "whisper-cli.exe")) {
     exit 0
 }
 
-$url = "https://github.com/ggml-org/whisper.cpp/releases/download/$whTag/$whAsset"
+$url = "https://github.com/Anon5T4R/Local-runtimes/releases/download/v1/$whAsset"
 Write-Host "Baixando $url ..."
 $zip = Join-Path $env:TEMP $whAsset
 Invoke-WebRequest -Uri $url -OutFile $zip
@@ -54,8 +57,8 @@ Remove-Item $zip -Force
 # O layout interno do zip muda entre versões — localiza o whisper-cli.exe e
 # copia a pasta inteira dele (DLLs do ggml incluídas).
 $cli = Get-ChildItem -Path $extract -Recurse -Filter "whisper-cli.exe" | Select-Object -First 1
-if (-not $cli) { throw "whisper-cli.exe não encontrado dentro do zip ($whTag)" }
+if (-not $cli) { throw "whisper-cli.exe não encontrado dentro do zip ($whUpstreamTag)" }
 Copy-Item -Path (Join-Path $cli.DirectoryName "*") -Destination $whisperDir -Recurse -Force
 Remove-Item $extract -Recurse -Force
 
-Write-Host "Instalado em $whisperDir ($whTag)"
+Write-Host "Instalado em $whisperDir ($whUpstreamTag)"
