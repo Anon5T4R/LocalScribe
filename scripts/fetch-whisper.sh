@@ -2,12 +2,29 @@
 # Instala o whisper-cli (Linux x64) em src-tauri/binaries/whisper.
 #
 # Diferente do Windows (zip pronto), no Linux COMPILAMOS do fonte no tag da
-# última release, estático (BUILD_SHARED_LIBS=OFF): os binários prontos do
-# projeto são buildados em runner mais novo e podem exigir glibc que a máquina
-# do usuário (e o runner ubuntu-22.04 do release) não tem. Build CPU básico —
-# hardware alvo modesto, sem dependência de GPU.
+# release: os binários prontos do projeto são buildados em runner mais novo e
+# podem exigir glibc que a máquina do usuário (e o runner ubuntu-22.04 do
+# release) não tem. Build CPU básico — sem dependência de GPU.
 # Uso: bash scripts/fetch-whisper.sh
 set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# VERSÃO FIXA (2026-07-18)
+#
+# Antes perguntava à API qual era a `releases/latest` e compilava aquilo — o
+# AppImage saía com um whisper diferente a cada build, sem registro de qual.
+# Agora a tag é explícita. Some junto o GH_TOKEN (era só pro rate-limit da API).
+#
+# Aqui NÃO há sha256: não é download de binário, é `git clone` numa tag e build
+# local. O que garante a origem é o próprio tag do repositório oficial. Se um
+# dia quisermos travar mais, o caminho é fixar o COMMIT em vez da tag (tag pode
+# ser movida; commit não).
+#
+# PRA ATUALIZAR: trocar o WH_TAG aqui e as constantes do `fetch-whisper.ps1`
+# pra MESMA versão — o Windows usa binário pronto, o Linux compila, mas os dois
+# têm que entregar a mesma versão do whisper.
+# ---------------------------------------------------------------------------
+WH_TAG="v1.9.1"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WHISPER_DIR="$ROOT/src-tauri/binaries/whisper"
@@ -18,18 +35,10 @@ if [ -f "$WHISPER_DIR/whisper-cli" ]; then
   exit 0
 fi
 
-AUTH=()
-[ -n "${GH_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer $GH_TOKEN")
-
-echo "Descobrindo a última release do whisper.cpp..."
-TAG=$(curl -fsSL --retry 3 --retry-delay 2 -H "User-Agent: localscribe-app" "${AUTH[@]}" \
-  "https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest" \
-  | grep -oE '"tag_name": *"[^"]+"' | head -1 | cut -d'"' -f4)
-[ -z "$TAG" ] && { echo "não consegui descobrir a tag da última release"; exit 1; }
-echo "Compilando whisper.cpp $TAG (whisper-cli estático, CPU)..."
+echo "Compilando whisper.cpp $WH_TAG (whisper-cli estático, CPU)..."
 
 SRC=$(mktemp -d)
-git clone --depth 1 --branch "$TAG" https://github.com/ggml-org/whisper.cpp.git "$SRC"
+git clone --depth 1 --branch "$WH_TAG" https://github.com/ggml-org/whisper.cpp.git "$SRC"
 cmake -S "$SRC" -B "$SRC/build" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
@@ -43,4 +52,4 @@ CLI=$(find "$SRC/build" -type f -name whisper-cli | head -1)
 cp "$CLI" "$WHISPER_DIR/whisper-cli"
 chmod +x "$WHISPER_DIR/whisper-cli"
 rm -rf "$SRC"
-echo "Instalado em $WHISPER_DIR ($TAG)"
+echo "Instalado em $WHISPER_DIR ($WH_TAG)"

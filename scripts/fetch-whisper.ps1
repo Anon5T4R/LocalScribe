@@ -1,11 +1,28 @@
 # Baixa o build Windows x64 do whisper.cpp e instala em
 # src-tauri/binaries/whisper (whisper-cli.exe + DLLs).
-#
-# Robustez: como no fetch-llama, varremos as últimas releases e usamos a
-# PRIMEIRA que tem o asset (release recém-publicada pode estar incompleta).
+# Build CPU básico — hardware alvo modesto, sem dependência de GPU.
 # Uso: powershell -ExecutionPolicy Bypass -File scripts/fetch-whisper.ps1
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+# ---------------------------------------------------------------------------
+# VERSÃO FIXA + SHA256 (2026-07-18)
+#
+# Antes varria as releases recentes pela API e pegava a primeira com o asset:
+# whisper-cli diferente a cada build, sem registro e sem verificação. Mesma
+# passada que fixou ffmpeg e llama.cpp na suíte.
+#
+# Com a tag fixa saem o laço de tentativas, o sleep e o GH_TOKEN — existiam só
+# porque release recém-publicada fica incompleta, o que não é problema numa tag
+# que já está pronta.
+#
+# PRA ATUALIZAR: pegar a tag em github.com/ggml-org/whisper.cpp/releases, baixar
+# o asset, rodar `sha256sum`, trocar as constantes — e atualizar o WH_TAG do
+# `fetch-whisper.sh` pra MESMA versão (lá é build do fonte, não binário pronto).
+# ---------------------------------------------------------------------------
+$whTag = "v1.9.1"
+$whAsset = "whisper-bin-x64.zip"
+$whSha256 = "7d8be46ecd31828e1eb7a2ecdd0d6b314feafd82163038ab6092594b0a063539"
 
 $root = Split-Path -Parent $PSScriptRoot
 $whisperDir = Join-Path $root "src-tauri\binaries\whisper"
@@ -16,28 +33,19 @@ if (Test-Path (Join-Path $whisperDir "whisper-cli.exe")) {
     exit 0
 }
 
-Write-Host "Consultando releases recentes do whisper.cpp..."
-$headers = @{ "User-Agent" = "localscribe-app" }
-if ($env:GH_TOKEN) { $headers["Authorization"] = "Bearer $env:GH_TOKEN" }
+$url = "https://github.com/ggml-org/whisper.cpp/releases/download/$whTag/$whAsset"
+Write-Host "Baixando $url ..."
+$zip = Join-Path $env:TEMP $whAsset
+Invoke-WebRequest -Uri $url -OutFile $zip
 
-$asset = $null
-$tag = ""
-foreach ($attempt in 1..3) {
-    $rels = Invoke-RestMethod -Uri "https://api.github.com/repos/ggml-org/whisper.cpp/releases?per_page=8" -Headers $headers
-    foreach ($rel in $rels) {
-        # Build CPU básico — hardware alvo modesto, sem dependência de GPU.
-        $hit = $rel.assets | Where-Object { $_.name -match "^whisper-bin-x64\.zip$" } | Select-Object -First 1
-        if ($hit) { $asset = $hit; $tag = $rel.tag_name; break }
-    }
-    if ($asset) { break }
-    Write-Host "asset whisper-bin-x64.zip ainda não disponível; aguardando 15s..."
-    Start-Sleep -Seconds 15
+# Confere ANTES de extrair: binário adulterado não chega a ser descompactado.
+$got = (Get-FileHash -Path $zip -Algorithm SHA256).Hash.ToLower()
+if ($got -ne $whSha256) {
+    Remove-Item $zip -Force
+    throw "SHA256 NAO BATE!`n  esperado: $whSha256`n  recebido: $got`nDownload corrompido ou adulterado. Nada foi instalado."
 }
-if (-not $asset) { throw "asset whisper-bin-x64.zip não encontrado nas últimas releases do whisper.cpp" }
+Write-Host "sha256 conferido: $got"
 
-Write-Host "Baixando $($asset.name) do release $tag ($([math]::Round($asset.size/1MB,1)) MB)..."
-$zip = Join-Path $env:TEMP $asset.name
-Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
 $extract = Join-Path $env:TEMP "whisper-extract"
 if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
 Expand-Archive -Path $zip -DestinationPath $extract -Force
@@ -46,8 +54,8 @@ Remove-Item $zip -Force
 # O layout interno do zip muda entre versões — localiza o whisper-cli.exe e
 # copia a pasta inteira dele (DLLs do ggml incluídas).
 $cli = Get-ChildItem -Path $extract -Recurse -Filter "whisper-cli.exe" | Select-Object -First 1
-if (-not $cli) { throw "whisper-cli.exe não encontrado dentro do zip ($tag)" }
+if (-not $cli) { throw "whisper-cli.exe não encontrado dentro do zip ($whTag)" }
 Copy-Item -Path (Join-Path $cli.DirectoryName "*") -Destination $whisperDir -Recurse -Force
 Remove-Item $extract -Recurse -Force
 
-Write-Host "Instalado em $whisperDir ($tag)"
+Write-Host "Instalado em $whisperDir ($whTag)"
