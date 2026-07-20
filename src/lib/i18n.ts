@@ -112,6 +112,45 @@ const pt = {
   "settings.notConfigured": "(não configurada)",
   "settings.choose": "Escolher…",
 
+  "storage.section": "Dados e armazenamento",
+  "storage.path": "Pasta de dados",
+  "storage.open": "Abrir",
+  "storage.db": "Transcrições (banco)",
+  "storage.dbHint": "o texto, os resumos e as notas — nenhuma limpeza desta tela apaga isso",
+  "storage.dbCounts": "{n} transcrições · {s} com resumo · {a} com áudio",
+  "storage.audio": "Áudio convertido",
+  "storage.audioCounts": "{n} arquivos · {orphans} órfãos ({orphanSize})",
+  "storage.models": "Modelos de transcrição",
+  "storage.modelsCounts": "{n} instalados · {unused} não usados ({unusedSize})",
+  "storage.temp": "Arquivos temporários",
+  "storage.tempCounts": "{n} arquivos",
+  "storage.clearOrphan": "Limpar áudio órfão",
+  "storage.clearOrphanHint":
+    "apaga só WAVs que nenhuma transcrição usa (sobras de trabalhos cancelados). Nenhuma transcrição perde o som.",
+  "storage.clearAudio": "Apagar todo o áudio convertido",
+  "storage.clearAudioHint":
+    "libera os WAVs de app_data/audio. O texto, o resumo e as notas ficam — você só perde o botão de reouvir. O arquivo original no seu computador não é tocado.",
+  "storage.clearModels": "Apagar modelos não usados",
+  "storage.clearModelsHint":
+    "apaga modelos ggml que nenhuma transcrição usou; o modelo padrão nunca sai. Dá pra baixar de novo em Modelos.",
+  "storage.clearTemp": "Limpar temporários",
+  "storage.clearTempHint": "sobras do whisper na pasta temporária do sistema. Não afeta a biblioteca.",
+  "storage.clear": "Limpar",
+  "storage.delete": "Apagar",
+  "storage.confirmTitle": "Confirmar limpeza",
+  "storage.confirmOrphan":
+    "Apagar os WAVs que nenhuma transcrição referencia? As transcrições e os áudios em uso ficam.",
+  "storage.confirmAudio":
+    "Apagar todo o áudio convertido? Você não poderá mais reouvir dentro do app. As transcrições, os resumos e as notas continuam intactos, e os arquivos originais não são tocados.",
+  "storage.confirmModels":
+    "Apagar os modelos que nenhuma transcrição usou? O modelo padrão fica, e os apagados podem ser baixados de novo.",
+  "storage.confirmTemp": "Apagar os arquivos temporários? Nada da biblioteca é afetado.",
+  "storage.confirmYes": "Sim, apagar",
+  "storage.freed": "Liberado {size} ({n} arquivos).",
+  "storage.nothing": "Nada pra limpar aqui.",
+  "storage.failed": "Falha na limpeza: {e}",
+  "storage.loadFailed": "Não consegui medir o armazenamento: {e}",
+
   "models.title": "Modelos de transcrição",
   "models.intro":
     "Modelos oficiais do whisper.cpp, baixados do Hugging Face com verificação de integridade. Maior = melhor qualidade e mais lento.",
@@ -309,6 +348,45 @@ const en: Record<MessageKey, string> = {
   "settings.notConfigured": "(not set)",
   "settings.choose": "Choose…",
 
+  "storage.section": "Data and storage",
+  "storage.path": "Data folder",
+  "storage.open": "Open",
+  "storage.db": "Transcripts (database)",
+  "storage.dbHint": "the text, summaries and notes — no cleanup on this screen deletes any of it",
+  "storage.dbCounts": "{n} transcripts · {s} with a summary · {a} with audio",
+  "storage.audio": "Converted audio",
+  "storage.audioCounts": "{n} files · {orphans} orphaned ({orphanSize})",
+  "storage.models": "Transcription models",
+  "storage.modelsCounts": "{n} installed · {unused} unused ({unusedSize})",
+  "storage.temp": "Temporary files",
+  "storage.tempCounts": "{n} files",
+  "storage.clearOrphan": "Clear orphaned audio",
+  "storage.clearOrphanHint":
+    "deletes only WAVs no transcript uses (leftovers from cancelled jobs). No transcript loses its audio.",
+  "storage.clearAudio": "Delete all converted audio",
+  "storage.clearAudioHint":
+    "frees the WAVs in app_data/audio. The text, summaries and notes stay — you only lose the replay button. Your original files are never touched.",
+  "storage.clearModels": "Delete unused models",
+  "storage.clearModelsHint":
+    "deletes ggml models no transcript has used; the default model is never removed. You can download them again under Models.",
+  "storage.clearTemp": "Clear temporary files",
+  "storage.clearTempHint": "whisper leftovers in the system temp folder. Your library is unaffected.",
+  "storage.clear": "Clear",
+  "storage.delete": "Delete",
+  "storage.confirmTitle": "Confirm cleanup",
+  "storage.confirmOrphan":
+    "Delete the WAVs no transcript references? Transcripts and audio in use are kept.",
+  "storage.confirmAudio":
+    "Delete all converted audio? You will no longer be able to replay it inside the app. Transcripts, summaries and notes stay intact, and your original files are not touched.",
+  "storage.confirmModels":
+    "Delete the models no transcript has used? The default model stays, and deleted ones can be downloaded again.",
+  "storage.confirmTemp": "Delete the temporary files? Nothing in your library is affected.",
+  "storage.confirmYes": "Yes, delete",
+  "storage.freed": "Freed {size} ({n} files).",
+  "storage.nothing": "Nothing to clean up here.",
+  "storage.failed": "Cleanup failed: {e}",
+  "storage.loadFailed": "Could not measure storage: {e}",
+
   "models.title": "Transcription models",
   "models.intro":
     "Official whisper.cpp models, downloaded from Hugging Face with integrity checking. Bigger = better quality and slower.",
@@ -503,6 +581,46 @@ const es: Record<MessageKey, string> = {
   "settings.ggufDir": "Carpeta de modelos .gguf (IA)",
   "settings.notConfigured": "(no configurada)",
   "settings.choose": "Elegir…",
+
+  "storage.section": "Datos y almacenamiento",
+  "storage.path": "Carpeta de datos",
+  "storage.open": "Abrir",
+  "storage.db": "Transcripciones (base de datos)",
+  "storage.dbHint": "el texto, los resúmenes y las notas — ninguna limpieza de esta pantalla los borra",
+  "storage.dbCounts": "{n} transcripciones · {s} con resumen · {a} con audio",
+  "storage.audio": "Audio convertido",
+  "storage.audioCounts": "{n} archivos · {orphans} huérfanos ({orphanSize})",
+  "storage.models": "Modelos de transcripción",
+  "storage.modelsCounts": "{n} instalados · {unused} sin usar ({unusedSize})",
+  "storage.temp": "Archivos temporales",
+  "storage.tempCounts": "{n} archivos",
+  "storage.clearOrphan": "Limpiar audio huérfano",
+  "storage.clearOrphanHint":
+    "borra solo los WAV que ninguna transcripción usa (restos de trabajos cancelados). Ninguna transcripción pierde su audio.",
+  "storage.clearAudio": "Borrar todo el audio convertido",
+  "storage.clearAudioHint":
+    "libera los WAV de app_data/audio. El texto, los resúmenes y las notas se quedan — solo pierdes el botón de volver a escuchar. Tus archivos originales no se tocan.",
+  "storage.clearModels": "Borrar modelos sin usar",
+  "storage.clearModelsHint":
+    "borra los modelos ggml que ninguna transcripción usó; el modelo predeterminado nunca se elimina. Puedes descargarlos de nuevo en Modelos.",
+  "storage.clearTemp": "Limpiar temporales",
+  "storage.clearTempHint":
+    "restos de whisper en la carpeta temporal del sistema. No afecta a la biblioteca.",
+  "storage.clear": "Limpiar",
+  "storage.delete": "Borrar",
+  "storage.confirmTitle": "Confirmar limpieza",
+  "storage.confirmOrphan":
+    "¿Borrar los WAV que ninguna transcripción referencia? Las transcripciones y el audio en uso se conservan.",
+  "storage.confirmAudio":
+    "¿Borrar todo el audio convertido? Ya no podrás volver a escucharlo dentro de la app. Las transcripciones, los resúmenes y las notas quedan intactos, y tus archivos originales no se tocan.",
+  "storage.confirmModels":
+    "¿Borrar los modelos que ninguna transcripción usó? El modelo predeterminado se queda, y los borrados se pueden descargar de nuevo.",
+  "storage.confirmTemp": "¿Borrar los archivos temporales? Nada de la biblioteca se ve afectado.",
+  "storage.confirmYes": "Sí, borrar",
+  "storage.freed": "Liberado {size} ({n} archivos).",
+  "storage.nothing": "Nada que limpiar aquí.",
+  "storage.failed": "Fallo en la limpieza: {e}",
+  "storage.loadFailed": "No pude medir el almacenamiento: {e}",
 
   "models.title": "Modelos de transcripción",
   "models.intro":

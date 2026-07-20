@@ -992,6 +992,56 @@ textarea:focus {
   min-width: 0;
 }
 
+/* ---------- dados e armazenamento ---------- */
+
+.storage {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.storage-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.storage-row:last-child {
+  border-bottom: none;
+}
+.storage-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.storage-row .btn {
+  flex: none;
+  white-space: nowrap;
+}
+.storage-dir {
+  font-size: 12px;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+.storage-confirm {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.storage-confirm p {
+  margin: 6px 0 10px;
+  font-size: 13px;
+}
+.storage-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ---------- drop overlay / toasts ---------- */
 
 .drop-overlay {

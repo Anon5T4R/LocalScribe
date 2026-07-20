@@ -1,6 +1,6 @@
 [package]
 name = "localscribe"
-version = "0.4.3"
+version = "0.5.0"
 description = "LocalScribe — transcrição de áudio 100% offline (whisper.cpp), com IA local"
 authors = ["Taylor"]
 edition = "2021"

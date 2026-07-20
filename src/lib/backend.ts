@@ -75,6 +75,37 @@ export const settingsSetRaw = (value: string) => cmd<void>("settings_set", { val
 export const writeTextFile = (path: string, content: string) =>
   cmd<void>("write_text_file", { path, content });
 
+// --- dados e armazenamento ---
+export interface StorageInfo {
+  dir: string;
+  dbBytes: number;
+  transcripts: number;
+  withSummary: number;
+  withAudio: number;
+  audioBytes: number;
+  audioFiles: number;
+  orphanAudioBytes: number;
+  orphanAudioFiles: number;
+  modelsBytes: number;
+  modelsCount: number;
+  unusedModelsBytes: number;
+  unusedModelsCount: number;
+  tempBytes: number;
+  tempFiles: number;
+}
+export interface Freed {
+  files: number;
+  bytes: number;
+}
+/** `keepModels`: ids que nunca contam como "não usados" (o modelo padrão). */
+export const storageInfo = (keepModels: string[]) =>
+  cmd<StorageInfo>("storage_info", { keepModels });
+export const storageClearOrphanAudio = () => cmd<Freed>("storage_clear_orphan_audio");
+export const storageClearAllAudio = () => cmd<Freed>("storage_clear_all_audio");
+export const storageClearUnusedModels = (keepModels: string[]) =>
+  cmd<Freed>("storage_clear_unused_models", { keepModels });
+export const storageClearTemp = () => cmd<Freed>("storage_clear_temp");
+
 // --- IA (llama-server) ---
 export interface ModelInfo {
   name: string;

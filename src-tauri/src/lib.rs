@@ -2,6 +2,7 @@ mod audio;
 mod db;
 mod llm;
 mod record;
+mod storage;
 mod whisper;
 
 use std::sync::Mutex;
@@ -99,6 +100,11 @@ pub fn run() {
             db::transcript_delete,
             db::settings_get,
             db::settings_set,
+            storage::storage_info,
+            storage::storage_clear_orphan_audio,
+            storage::storage_clear_all_audio,
+            storage::storage_clear_unused_models,
+            storage::storage_clear_temp,
             llm::list_models,
             llm::start_llm,
             llm::stop_llm,

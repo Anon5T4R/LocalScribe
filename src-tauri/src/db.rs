@@ -21,6 +21,14 @@ pub fn open(app: &tauri::AppHandle, db: &Db) -> Result<(), String> {
     let dir = app.path().app_data_dir().map_err(|e| format!("app_data indisponível: {}", e))?;
     std::fs::create_dir_all(&dir).map_err(|e| format!("criar app_data: {}", e))?;
     let conn = Connection::open(dir.join("scribe.db")).map_err(|e| e.to_string())?;
+    init_schema(&conn).map_err(|e| e.to_string())?;
+    *db.0.lock().map_err(|_| "lock do banco")? = Some(conn);
+    Ok(())
+}
+
+/// Esquema separado do `open` pra que os testes montem um banco em memória
+/// idêntico ao real sem precisar de um AppHandle do Tauri.
+pub(crate) fn init_schema(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(
         "PRAGMA journal_mode=WAL;
          CREATE TABLE IF NOT EXISTS transcripts (
@@ -41,12 +49,9 @@ pub fn open(app: &tauri::AppHandle, db: &Db) -> Result<(), String> {
          CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
          INSERT OR IGNORE INTO settings(key, value) VALUES ('schema_version', '1');",
     )
-    .map_err(|e| e.to_string())?;
-    *db.0.lock().map_err(|_| "lock do banco")? = Some(conn);
-    Ok(())
 }
 
-fn with_conn<T>(
+pub(crate) fn with_conn<T>(
     db: &Db,
     f: impl FnOnce(&Connection) -> Result<T, rusqlite::Error>,
 ) -> Result<T, String> {
