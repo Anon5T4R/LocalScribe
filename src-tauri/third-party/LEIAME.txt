@@ -1,0 +1,56 @@
+Binários de terceiros distribuídos com o LocalScribe
+===================================================
+
+O LocalScribe é software livre sob a licença MIT (veja o LICENSE na raiz do
+repositório). O instalador acompanha dois programas de terceiros, ambos em
+builds NÃO MODIFICADAS. Cada um mantém a sua própria licença — o que segue
+cumpre as obrigações de quem redistribui esses binários.
+
+Os dois rodam como PROCESSO SEPARADO (sidecar), invocados por linha de comando.
+O código do LocalScribe não faz linkagem com nenhum deles: as obras são apenas
+agregadas no mesmo instalador.
+
+
+1) whisper.cpp — MIT
+--------------------
+Motor de transcrição (whisper-cli e as bibliotecas ggml em binaries/whisper/).
+
+  tag do upstream ... v1.9.1
+  fonte ............. https://github.com/ggml-org/whisper.cpp (tag v1.9.1)
+  espelho ........... https://github.com/Anon5T4R/Local-runtimes (release v1)
+  sha256 (win) ...... 7d8be46ecd31828e1eb7a2ecdd0d6b314feafd82163038ab6092594b0a063539
+
+  Texto da licença .. LICENSE-whisper.cpp.txt (cópia do LICENSE da tag v1.9.1)
+
+
+2) llama.cpp — MIT
+------------------
+Runtime de inferência local (llama-server.exe e as bibliotecas ggml que vão ao
+lado dele em binaries/llama/), usado no resumo/pós-processamento.
+
+  tag do upstream ... b10066
+  fonte ............. https://github.com/ggml-org/llama.cpp (tag b10066)
+  espelho ........... https://github.com/Anon5T4R/Local-runtimes (release v1)
+  sha256 (win) ...... 57cb5dd3143b2814b8d1d14587867628bfb126536abfa7085ca9560c4919d998
+
+  Texto da licença .. LICENSE-llama.cpp.txt
+
+
+Por que estes textos são VERSIONADOS aqui
+------------------------------------------
+A MIT exige que o aviso de copyright e o texto da permissão acompanhem as
+cópias do software. Os zips de release do whisper.cpp e do llama.cpp NÃO trazem
+o LICENSE dentro (conferido nos assets espelhados), então não há o que extrair
+do download — diferente do ffmpeg do BtbN, onde o LICENSE.txt vem no próprio
+arquivo e por isso é copiado de lá. Aqui as cópias ficam no repositório, e o
+glob "third-party/*" do tauri.conf.json as empacota.
+
+Os modelos de transcrição (GGUF/bin do Whisper) NÃO acompanham o instalador:
+são baixados pelo usuário em tempo de execução e têm licença própria.
+
+Nota: o zip do whisper.cpp traz junto um SDL2.dll (licença zlib), usado pelos
+utilitários de captura ao vivo do próprio whisper. A zlib não exige que o aviso
+acompanhe a distribuição BINÁRIA, então ele não está listado acima como
+obrigação — fica registrado aqui por transparência. Fonte:
+https://github.com/libsdl-org/SDL
+
