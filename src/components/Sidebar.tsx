@@ -42,6 +42,17 @@ export default function Sidebar() {
               <span>{fmtDate(m.createdMs)}</span>
               <span className="chip">{fmtDur(m.durationMs)}</span>
               {m.language && <span className="chip">{m.language}</span>}
+              {/* Qual IA fez ESTA transcrição. O `model` já vinha do backend em
+                  todo item da lista (`TranscriptMeta`), mas só a tela aberta o
+                  mostrava — ou seja, pra comparar duas transcrições era preciso
+                  abrir uma, ler o chip, abrir a outra e lembrar. Aqui a
+                  biblioteca inteira responde de relance qual saiu do `base` e
+                  qual saiu do `medium`, que é o que decide se vale reprocessar. */}
+              {m.model && (
+                <span className="chip" title={t("sidebar.modelTitle")}>
+                  {t("sidebar.modelChip", { model: m.model })}
+                </span>
+              )}
               {m.hasSummary && (
                 <span className="chip accent" title={t("sidebar.hasSummary")}>
                   ✦

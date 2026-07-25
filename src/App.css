@@ -397,8 +397,12 @@ textarea:focus {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* `flex-wrap`: com o chip do modelo (whisper base/small/medium) são até cinco
+   itens numa barra lateral estreita — sem quebrar linha, o último some no corte
+   ou espreme os outros. */
 .lib-item-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 4px;
